@@ -1,0 +1,29 @@
+{
+  "name": "mcpick",
+  "version": "0.1.0",
+  "description": "Pick and sync MCP server configs across AI tools",
+  "type": "module",
+  "bin": {
+    "mcpick": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "test": "bun test",
+    "build": "bun build src/index.ts --outdir dist --target node"
+  },
+  "keywords": ["mcp", "sync", "claude", "cursor", "codex", "gemini", "copilot"],
+  "author": "lucid-jin",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.3.2",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3"
+  },
+  "files": ["src/", "README.md"]
+}
