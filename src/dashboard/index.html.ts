@@ -1,4 +1,5 @@
-export const dashboardHTML = `<!DOCTYPE html>
+export function getDashboardHTML(csrfToken: string): string {
+return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -165,6 +166,9 @@ export const dashboardHTML = `<!DOCTYPE html>
 </div>
 
 <script>
+const CSRF_TOKEN = '${csrfToken}';
+const postHeaders = { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN };
+
 let tools = [];
 let dragData = null;
 
@@ -304,7 +308,7 @@ async function onDrop(e, targetToolId) {
   try {
     const res = await fetch('/api/sync', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: postHeaders,
       body: JSON.stringify({
         sourceId: sourceToolId,
         targetId: targetToolId,
@@ -337,7 +341,7 @@ async function onDelete(e, toolId, serverName) {
   try {
     const res = await fetch('/api/delete', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: postHeaders,
       body: JSON.stringify({ toolId, serverName })
     });
     const data = await res.json();
@@ -359,7 +363,7 @@ async function undoLastAction() {
     try {
       await fetch('/api/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: postHeaders,
         body: JSON.stringify({
           sourceId: lastAction.toolId,
           targetId: lastAction.toolId,
@@ -394,3 +398,4 @@ loadTools();
 </script>
 </body>
 </html>`;
+}

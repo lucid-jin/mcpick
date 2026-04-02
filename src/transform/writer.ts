@@ -10,40 +10,42 @@ import type { MCPServer } from "./parser";
 export async function writeConfig(
   tool: Tool,
   servers: Record<string, MCPServer>,
-  options: { merge?: boolean } = {}
+  options: { merge?: boolean; rawBase?: Record<string, unknown> } = {}
 ): Promise<void> {
-  let existing: Record<string, unknown> = {};
+  // Guard: refuse to write TOML
+  if (tool.format === "toml") {
+    throw new Error(`TOML write not supported for ${tool.name}. Codex sync coming soon.`);
+  }
 
-  try {
-    await access(tool.configPath);
-    const content = await readFile(tool.configPath, "utf-8");
-    existing = JSON.parse(content);
-  } catch {
-    // file doesn't exist yet
+  let existing: Record<string, unknown> = options.rawBase || {};
+
+  if (!options.rawBase) {
+    try {
+      await access(tool.configPath);
+      const content = await readFile(tool.configPath, "utf-8");
+      existing = JSON.parse(content);
+    } catch {
+      // file doesn't exist or is invalid — start fresh
+    }
   }
 
   const existingServers = (existing[tool.serversKey] as Record<string, unknown>) || {};
 
-  // Build output servers
   const outputServers: Record<string, unknown> = options.merge
     ? { ...existingServers }
     : {};
 
   for (const [name, server] of Object.entries(servers)) {
-    outputServers[name] = serializeServer(server, tool);
+    outputServers[name] = serializeServer(server);
   }
 
-  // Preserve all non-MCP fields
   const output = { ...existing, [tool.serversKey]: outputServers };
 
   await mkdir(dirname(tool.configPath), { recursive: true });
   await writeFile(tool.configPath, JSON.stringify(output, null, 2) + "\n", "utf-8");
 }
 
-/**
- * Serialize a canonical MCPServer to the format expected by the tool.
- */
-function serializeServer(server: MCPServer, tool: Tool): Record<string, unknown> {
+function serializeServer(server: MCPServer): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   if (server.type === "http" && server.url) {
@@ -58,7 +60,6 @@ function serializeServer(server: MCPServer, tool: Tool): Record<string, unknown>
     result.env = server.env;
   }
 
-  // Copy extra fields
   for (const [key, value] of Object.entries(server)) {
     if (!["type", "command", "args", "url", "env"].includes(key) && value !== undefined) {
       result[key] = value;
