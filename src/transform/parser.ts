@@ -1,3 +1,4 @@
+import { readFile, access } from "fs/promises";
 import type { Tool } from "../registry/tools";
 
 export interface MCPServer {
@@ -15,10 +16,13 @@ export interface ParsedConfig {
 }
 
 export async function parseConfig(tool: Tool): Promise<ParsedConfig | null> {
-  const file = Bun.file(tool.configPath);
-  if (!(await file.exists())) return null;
+  try {
+    await access(tool.configPath);
+  } catch {
+    return null;
+  }
 
-  const content = await file.text();
+  const content = await readFile(tool.configPath, "utf-8");
 
   if (tool.format === "json") {
     return parseJsonConfig(content, tool);

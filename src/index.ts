@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { Command } from "commander";
 import { listCommand } from "./commands/list";
 import { syncCommand } from "./commands/sync";
@@ -7,7 +7,7 @@ import { doctorCommand } from "./commands/doctor";
 const program = new Command();
 
 program
-  .name("mcpick")
+  .name("mcpicker")
   .description("Pick and sync MCP server configs across AI tools")
   .version("0.1.0");
 

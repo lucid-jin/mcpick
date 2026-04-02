@@ -1,3 +1,5 @@
+import { readFile, writeFile, access, mkdir } from "fs/promises";
+import { dirname } from "path";
 import type { Tool } from "../registry/tools";
 import type { MCPServer } from "./parser";
 
@@ -10,12 +12,14 @@ export async function writeConfig(
   servers: Record<string, MCPServer>,
   options: { merge?: boolean } = {}
 ): Promise<void> {
-  const file = Bun.file(tool.configPath);
   let existing: Record<string, unknown> = {};
 
-  if (await file.exists()) {
-    const content = await file.text();
+  try {
+    await access(tool.configPath);
+    const content = await readFile(tool.configPath, "utf-8");
     existing = JSON.parse(content);
+  } catch {
+    // file doesn't exist yet
   }
 
   const existingServers = (existing[tool.serversKey] as Record<string, unknown>) || {};
@@ -32,7 +36,8 @@ export async function writeConfig(
   // Preserve all non-MCP fields
   const output = { ...existing, [tool.serversKey]: outputServers };
 
-  await Bun.write(tool.configPath, JSON.stringify(output, null, 2) + "\n");
+  await mkdir(dirname(tool.configPath), { recursive: true });
+  await writeFile(tool.configPath, JSON.stringify(output, null, 2) + "\n", "utf-8");
 }
 
 /**

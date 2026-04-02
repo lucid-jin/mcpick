@@ -1,29 +1,35 @@
 {
-  "name": "mcpick",
+  "name": "mcpicker",
   "version": "0.1.0",
   "description": "Pick and sync MCP server configs across AI tools",
   "type": "module",
   "bin": {
-    "mcpick": "./src/index.ts"
+    "mcpicker": "./dist/index.js"
   },
   "scripts": {
     "dev": "bun run src/index.ts",
-    "test": "bun test",
-    "build": "bun build src/index.ts --outdir dist --target node"
+    "build": "bun build src/index.ts --outdir dist --target node --minify",
+    "prepublishOnly": "bun run build",
+    "test": "bun test"
   },
-  "keywords": ["mcp", "sync", "claude", "cursor", "codex", "gemini", "copilot"],
+  "keywords": ["mcp", "sync", "claude", "cursor", "codex", "gemini", "copilot", "claude-desktop"],
   "author": "lucid-jin",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lucid-jin/mcpick.git"
+  },
+  "homepage": "https://github.com/lucid-jin/mcpick",
+  "engines": {
+    "node": ">=18"
+  },
   "devDependencies": {
     "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.3.2",
     "chalk": "^5.6.2",
     "commander": "^14.0.3"
   },
-  "files": ["src/", "README.md"]
+  "files": ["dist/", "README.md", "LICENSE"]
 }

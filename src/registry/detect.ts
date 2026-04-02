@@ -1,3 +1,4 @@
+import { access } from "fs/promises";
 import { getTools, type Tool } from "./tools";
 
 export async function detectInstalledTools(): Promise<Tool[]> {
@@ -5,9 +6,11 @@ export async function detectInstalledTools(): Promise<Tool[]> {
   const installed: Tool[] = [];
 
   for (const tool of tools) {
-    const file = Bun.file(tool.configPath);
-    if (await file.exists()) {
+    try {
+      await access(tool.configPath);
       installed.push(tool);
+    } catch {
+      // file doesn't exist
     }
   }
 
