@@ -59,6 +59,15 @@ export function getTools(): Tool[] {
       keywords: ["claude-desktop", "desktop"],
     },
     {
+      id: "codex",
+      name: "Codex",
+      format: "toml",
+      httpSupport: false,
+      serversKey: "mcp_servers",
+      configPath: home(".codex", "config.toml"),
+      keywords: ["codex", "openai"],
+    },
+    {
       id: "cursor",
       name: "Cursor",
       format: "json",
@@ -68,15 +77,6 @@ export function getTools(): Tool[] {
         ? appdata("Cursor", "mcp.json")
         : home(".cursor", "mcp.json"),
       keywords: ["cursor"],
-    },
-    {
-      id: "codex",
-      name: "Codex",
-      format: "toml",
-      httpSupport: false,
-      serversKey: "mcp_servers",
-      configPath: home(".codex", "config.toml"),
-      keywords: ["codex", "openai"],
     },
     {
       id: "gemini",
