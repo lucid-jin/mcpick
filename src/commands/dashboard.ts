@@ -49,7 +49,7 @@ async function startDashboard(port: number) {
 
     if (url.pathname === "/api/sync" && req.method === "POST") {
       const body = await readBody(req);
-      const { sourceId, targetId, serverNames } = JSON.parse(body);
+      const { sourceId, targetId, serverNames, serverData } = JSON.parse(body);
 
       const sourceTool = findTool(sourceId);
       const targetTool = findTool(targetId);
@@ -58,17 +58,24 @@ async function startDashboard(port: number) {
         return;
       }
 
-      const sourceConfig = await parseConfig(sourceTool);
-      if (!sourceConfig) {
-        json(res, { error: "Source has no config" }, 400);
-        return;
-      }
-
       const servers: Record<string, any> = {};
-      for (const name of serverNames) {
-        if (sourceConfig.servers[name]) {
-          const adapted = adaptServer(name, sourceConfig.servers[name], sourceTool, targetTool);
-          servers[name] = adapted.server;
+
+      if (serverData) {
+        // Direct server data (used by undo)
+        for (const [name, srv] of Object.entries(serverData)) {
+          servers[name] = srv;
+        }
+      } else {
+        const sourceConfig = await parseConfig(sourceTool);
+        if (!sourceConfig) {
+          json(res, { error: "Source has no config" }, 400);
+          return;
+        }
+        for (const name of serverNames) {
+          if (sourceConfig.servers[name]) {
+            const adapted = adaptServer(name, sourceConfig.servers[name], sourceTool, targetTool);
+            servers[name] = adapted.server;
+          }
         }
       }
 
@@ -76,6 +83,46 @@ async function startDashboard(port: number) {
       await writeConfig(targetTool, servers, { merge: true });
 
       json(res, { success: true, synced: Object.keys(servers).length });
+      return;
+    }
+
+    if (url.pathname === "/api/delete" && req.method === "POST") {
+      const body = await readBody(req);
+      const { toolId, serverName } = JSON.parse(body);
+
+      const tool = findTool(toolId);
+      if (!tool) {
+        json(res, { error: "Invalid tool ID" }, 400);
+        return;
+      }
+
+      const config = await parseConfig(tool);
+      if (!config || !config.servers[serverName]) {
+        json(res, { error: "Server not found" }, 404);
+        return;
+      }
+
+      await backupConfig(tool.configPath);
+
+      // Remove server from config
+      const { [serverName]: _, ...remaining } = config.servers;
+      const output = { ...config.raw, [tool.serversKey]: {} as Record<string, any> };
+      for (const [name, server] of Object.entries(remaining)) {
+        const s = server as any;
+        const entry: Record<string, any> = {};
+        if (s.type === "http" && s.url) { entry.type = "http"; entry.url = s.url; }
+        else { if (s.command) entry.command = s.command; if (s.args?.length) entry.args = s.args; }
+        if (s.env && Object.keys(s.env).length) entry.env = s.env;
+        for (const [k, v] of Object.entries(s)) {
+          if (!["type", "command", "args", "url", "env"].includes(k) && v !== undefined) entry[k] = v;
+        }
+        (output[tool.serversKey] as Record<string, any>)[name] = entry;
+      }
+
+      const { writeFile } = await import("fs/promises");
+      await writeFile(tool.configPath, JSON.stringify(output, null, 2) + "\n", "utf-8");
+
+      json(res, { success: true, deleted: serverName });
       return;
     }
 

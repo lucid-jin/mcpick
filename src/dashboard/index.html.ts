@@ -67,6 +67,21 @@ export const dashboardHTML = `<!DOCTYPE html>
   .server-type.stdio { background: #0d946822; color: #34d399; }
   .server-type.http { background: #f59e0b22; color: #fbbf24; }
 
+  .delete-btn {
+    opacity: 0;
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .server-item:hover .delete-btn { opacity: 0.6; }
+  .delete-btn:hover { opacity: 1 !important; background: #ef444422; }
+
   .empty { padding: 20px; text-align: center; color: #333; font-size: 12px; }
 
   .drop-hint {
@@ -205,6 +220,7 @@ function render() {
                    ondragend="onDragEnd(event)">
                 <span class="server-name">\${name}</span>
                 <span class="server-type \${srv.type}">\${srv.type}</span>
+                <button class="delete-btn" onclick="onDelete(event, '\${tool.id}', '\${name}')" title="Delete server">x</button>
               </div>
             \`).join('')}
         </div>
@@ -308,6 +324,63 @@ async function onDrop(e, targetToolId) {
   } catch (err) {
     showToast('\\u2717 ' + err.message, 'error');
   }
+}
+
+let lastAction = null;
+
+async function onDelete(e, toolId, serverName) {
+  e.stopPropagation();
+  const tool = tools.find(t => t.id === toolId);
+  const srv = tool.servers[serverName];
+  if (!confirm('Delete "' + serverName + '" from ' + tool.name + '?\\n\\n(Auto-backup will be created)')) return;
+
+  try {
+    const res = await fetch('/api/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ toolId, serverName })
+    });
+    const data = await res.json();
+    if (data.success) {
+      lastAction = { type: 'delete', toolId, serverName, server: srv };
+      showToastWithUndo('Deleted ' + serverName);
+      await loadTools();
+    } else {
+      showToast('Error: ' + (data.error || 'Unknown'), 'error');
+    }
+  } catch (err) {
+    showToast('Failed: ' + err.message, 'error');
+  }
+}
+
+async function undoLastAction() {
+  if (!lastAction) return;
+  if (lastAction.type === 'delete') {
+    try {
+      await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceId: lastAction.toolId,
+          targetId: lastAction.toolId,
+          serverNames: [lastAction.serverName],
+          serverData: { [lastAction.serverName]: lastAction.server }
+        })
+      });
+      showToast('Restored ' + lastAction.serverName, '');
+      lastAction = null;
+      await loadTools();
+    } catch (err) {
+      showToast('Undo failed: ' + err.message, 'error');
+    }
+  }
+}
+
+function showToastWithUndo(msg) {
+  const toast = document.getElementById('toast');
+  toast.innerHTML = msg + ' <button onclick="undoLastAction()" style="margin-left:12px;background:#2563eb;border:none;color:#fff;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Undo</button>';
+  toast.className = 'toast show';
+  setTimeout(() => { toast.classList.remove('show'); }, 8000);
 }
 
 function showToast(msg, type) {
