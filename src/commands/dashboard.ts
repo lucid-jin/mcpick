@@ -70,11 +70,6 @@ async function startDashboard(port: number) {
           return;
         }
 
-        // Block TOML targets
-        if (targetTool.format === "toml") {
-          json(res, { error: "TOML write not yet supported" }, 400);
-          return;
-        }
 
         const sourceConfig = await parseConfig(sourceTool);
         if (!sourceConfig) {
