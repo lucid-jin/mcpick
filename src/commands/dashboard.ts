@@ -78,10 +78,14 @@ async function startDashboard(port: number) {
         }
 
         const servers: Record<string, any> = {};
+        const allWarnings: string[] = [];
         for (const name of serverNames) {
           if (sourceConfig.servers[name]) {
             const adapted = adaptServer(name, sourceConfig.servers[name], sourceTool, targetTool);
             servers[name] = adapted.server;
+            if (adapted.warnings) {
+              allWarnings.push(...adapted.warnings.map((w: string) => `${name}: ${w}`));
+            }
           }
         }
 
@@ -93,7 +97,7 @@ async function startDashboard(port: number) {
         await backupConfig(targetTool.configPath);
         await writeConfig(targetTool, servers, { merge: true });
 
-        json(res, { success: true, synced: Object.keys(servers).length });
+        json(res, { success: true, synced: Object.keys(servers).length, warnings: allWarnings.length > 0 ? allWarnings : undefined });
         return;
       }
 

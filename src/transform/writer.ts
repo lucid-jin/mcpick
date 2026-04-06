@@ -4,6 +4,32 @@ import TOML from "@iarna/toml";
 import type { Tool } from "../registry/tools";
 import type { MCPServer } from "./parser";
 
+/** Resolve a dot-separated key path to get the value */
+function getNestedValue(obj: Record<string, unknown>, keyPath: string): unknown {
+  const keys = keyPath.split(".");
+  let current: unknown = obj;
+  for (const key of keys) {
+    if (!current || typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[key];
+  }
+  return current;
+}
+
+/** Set a value at a dot-separated key path, creating intermediate objects as needed */
+function setNestedValue(obj: Record<string, unknown>, keyPath: string, value: unknown): void {
+  const keys = keyPath.split(".");
+  let current = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const k = keys[i] as string;
+    if (!current[k] || typeof current[k] !== "object") {
+      current[k] = {};
+    }
+    current = current[k] as Record<string, unknown>;
+  }
+  const lastKey = keys[keys.length - 1] as string;
+  current[lastKey] = value;
+}
+
 export async function writeConfig(
   tool: Tool,
   servers: Record<string, MCPServer>,
@@ -31,14 +57,15 @@ async function writeJsonConfig(
     } catch { /* start fresh */ }
   }
 
-  const existingServers = (existing[tool.serversKey] as Record<string, unknown>) || {};
+  const existingServers = (getNestedValue(existing, tool.serversKey) as Record<string, unknown>) || {};
   const outputServers: Record<string, unknown> = options.merge ? { ...existingServers } : {};
 
   for (const [name, server] of Object.entries(servers)) {
     outputServers[name] = serializeJsonServer(server);
   }
 
-  const output = { ...existing, [tool.serversKey]: outputServers };
+  const output = { ...existing };
+  setNestedValue(output, tool.serversKey, outputServers);
 
   await mkdir(dirname(tool.configPath), { recursive: true });
   await writeFile(tool.configPath, JSON.stringify(output, null, 2) + "\n", "utf-8");
