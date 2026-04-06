@@ -3,7 +3,7 @@ import TOML from "@iarna/toml";
 import type { Tool } from "../registry/tools";
 
 /** Resolve a dot-separated key path (e.g. "mcp.servers") from a nested object */
-function getNestedValue(obj: Record<string, unknown>, keyPath: string): unknown {
+export function getNestedValue(obj: Record<string, unknown>, keyPath: string): unknown {
   const keys = keyPath.split(".");
   let current: unknown = obj;
   for (const key of keys) {
@@ -115,7 +115,7 @@ function parseTomlConfig(content: string, tool: Tool): ParsedConfig {
   return { servers, raw };
 }
 
-function extractServer(c: Record<string, unknown>): MCPServer {
+export function extractServer(c: Record<string, unknown>): MCPServer {
   return {
     type: c.type === "http" || c.url ? "http" : "stdio",
     command: typeof c.command === "string" ? c.command : undefined,
