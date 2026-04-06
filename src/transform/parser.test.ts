@@ -108,8 +108,8 @@ describe("parseConfig — JSON", () => {
     const result = await parseConfig(tool);
     expect(result).not.toBeNull();
     expect(Object.keys(result!.servers)).toEqual(["context7", "remote"]);
-    expect(result!.servers.context7.type).toBe("stdio");
-    expect(result!.servers.remote.type).toBe("http");
+    expect(result!.servers.context7!.type).toBe("stdio");
+    expect(result!.servers.remote!.type).toBe("http");
   });
 
   test("parses nested key (mcp.servers) for OpenClaw", async () => {
@@ -126,8 +126,8 @@ describe("parseConfig — JSON", () => {
 
     const result = await parseConfig(tool);
     expect(result).not.toBeNull();
-    expect(result!.servers.s1.type).toBe("stdio");
-    expect(result!.servers.s1.command).toBe("npx");
+    expect(result!.servers.s1!.type).toBe("stdio");
+    expect(result!.servers.s1!.command).toBe("npx");
   });
 
   test("returns empty servers when key is missing", async () => {
@@ -182,9 +182,9 @@ API_KEY = "test123"
 
     const result = await parseConfig(tool);
     expect(result).not.toBeNull();
-    expect(result!.servers.context7.type).toBe("stdio");
-    expect(result!.servers.context7.command).toBe("npx");
-    expect(result!.servers.context7.env).toEqual({ API_KEY: "test123" });
+    expect(result!.servers.context7!.type).toBe("stdio");
+    expect(result!.servers.context7!.command).toBe("npx");
+    expect(result!.servers.context7!.env).toEqual({ API_KEY: "test123" });
   });
 
   test("unwraps Windows cmd /c wrapper", async () => {
@@ -197,7 +197,7 @@ args = ["/c", "npx", "-y", "mcp-remote", "https://example.com"]
     const tool = makeTool({ format: "toml", serversKey: "mcp_servers", configPath: join(TMP, "config.toml") });
 
     const result = await parseConfig(tool);
-    expect(result!.servers.srv.command).toBe("npx");
-    expect(result!.servers.srv.args).toEqual(["-y", "mcp-remote", "https://example.com"]);
+    expect(result!.servers.srv!.command).toBe("npx");
+    expect(result!.servers.srv!.args).toEqual(["-y", "mcp-remote", "https://example.com"]);
   });
 });
