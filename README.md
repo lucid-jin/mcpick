@@ -7,12 +7,15 @@ Sync MCP server configurations between Claude Code, Claude Desktop, Cursor, Code
 ## Install
 
 ```bash
-# Run directly
-npx mcpicker list
-bunx mcpicker list
+# Run directly from GitHub (no install needed)
+npx github:lucid-jin/mcpick list
+npx github:lucid-jin/mcpick sync
+npx github:lucid-jin/mcpick dashboard
 
-# Global install
-npm install -g mcpicker
+# Or clone and run locally
+git clone https://github.com/lucid-jin/mcpick
+cd mcpick && bun install && bun run build
+node dist/index.js list
 ```
 
 ## Commands
