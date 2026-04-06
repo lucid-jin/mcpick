@@ -5,7 +5,7 @@ import type { Tool } from "../registry/tools";
 import type { MCPServer } from "./parser";
 
 /** Resolve a dot-separated key path to get the value */
-function getNestedValue(obj: Record<string, unknown>, keyPath: string): unknown {
+export function getNestedValue(obj: Record<string, unknown>, keyPath: string): unknown {
   const keys = keyPath.split(".");
   let current: unknown = obj;
   for (const key of keys) {
@@ -16,7 +16,7 @@ function getNestedValue(obj: Record<string, unknown>, keyPath: string): unknown 
 }
 
 /** Set a value at a dot-separated key path, creating intermediate objects as needed */
-function setNestedValue(obj: Record<string, unknown>, keyPath: string, value: unknown): void {
+export function setNestedValue(obj: Record<string, unknown>, keyPath: string, value: unknown): void {
   const keys = keyPath.split(".");
   let current = obj;
   for (let i = 0; i < keys.length - 1; i++) {
@@ -99,7 +99,7 @@ async function writeTomlConfig(
   await writeFile(tool.configPath, TOML.stringify(output as any), "utf-8");
 }
 
-function serializeJsonServer(server: MCPServer): Record<string, unknown> {
+export function serializeJsonServer(server: MCPServer): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   if (server.type === "http" && server.url) {
@@ -123,7 +123,7 @@ function serializeJsonServer(server: MCPServer): Record<string, unknown> {
   return result;
 }
 
-function serializeTomlServer(server: MCPServer): Record<string, unknown> {
+export function serializeTomlServer(server: MCPServer): Record<string, unknown> {
   const isWin = process.platform === "win32";
   const command = server.command || "npx";
   const args = server.args || [];
