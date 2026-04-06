@@ -185,15 +185,44 @@ function getToolTags(tool) {
   const tags = [];
   if (!tool.httpSupport) tags.push('<span class="tag no-http">no HTTP</span>');
   if (tool.format === 'toml') tags.push('<span class="tag toml">TOML</span>');
+  if (tool.id === 'openclaw') tags.push('<span class="tag no-http">no OAuth</span>');
   return tags.join('');
 }
 
-function getDropInfo(sourceTool, targetTool, serverType) {
+function getDropInfo(sourceTool, targetTool, serverName, serverType) {
   if (targetTool.format === 'toml') {
     return { class: 'blocked', hint: 'TOML write not yet supported' };
   }
+
+  const server = sourceTool.servers[serverName];
+  const warnings = [];
+
+  // OpenClaw-specific restrictions
+  if (targetTool.id === 'openclaw' && server) {
+    // OAuth/Bearer headers → blocked
+    if (server.headers) {
+      const headerEntries = Object.entries(server.headers);
+      const hasOAuth = headerEntries.some(([k, v]) =>
+        k.toLowerCase() === 'authorization' && typeof v === 'string' && (v.toLowerCase().includes('bearer') || v.toLowerCase().includes('oauth'))
+      );
+      if (hasOAuth) {
+        return { class: 'blocked', hint: 'OpenClaw does not support OAuth authentication' };
+      }
+      warnings.push('headers will be stripped (OpenClaw ignores them)');
+    }
+
+    // transport field (sse/streamable-http) → blocked
+    if (server.transport) {
+      return { class: 'blocked', hint: 'OpenClaw does not support ' + server.transport + ' transport' };
+    }
+  }
+
   if (serverType === 'http' && !targetTool.httpSupport) {
-    return { class: 'warn', hint: 'HTTP server will be auto-converted via mcp-remote' };
+    warnings.push('HTTP → mcp-remote auto-convert');
+  }
+
+  if (warnings.length > 0) {
+    return { class: 'warn', hint: warnings.join(' · ') };
   }
   return { class: '', hint: 'Drop to sync here' };
 }
@@ -255,10 +284,12 @@ function onDragOver(e, toolId) {
   if (!dragData || dragData.toolId === toolId) return;
 
   const card = e.currentTarget;
+  const sourceTool = tools.find(t => t.id === dragData.toolId);
   const targetTool = tools.find(t => t.id === toolId);
   const info = getDropInfo(
-    tools.find(t => t.id === dragData.toolId),
+    sourceTool,
     targetTool,
+    dragData.serverName,
     dragData.serverType
   );
 
@@ -283,10 +314,12 @@ async function onDrop(e, targetToolId) {
 
   if (!dragData || dragData.toolId === targetToolId) return;
 
+  const sourceTool = tools.find(t => t.id === dragData.toolId);
   const targetTool = tools.find(t => t.id === targetToolId);
   const info = getDropInfo(
-    tools.find(t => t.id === dragData.toolId),
+    sourceTool,
     targetTool,
+    dragData.serverName,
     dragData.serverType
   );
 
@@ -317,10 +350,13 @@ async function onDrop(e, targetToolId) {
     });
     const data = await res.json();
     if (data.success) {
-      const msg = converting
+      let msg = converting
         ? '\\u2713 ' + serverName + ' synced (HTTP \\u2192 mcp-remote)'
         : '\\u2713 ' + serverName + ' synced!';
-      showToast(msg, '');
+      if (data.warnings && data.warnings.length > 0) {
+        msg += ' \\u26A0 ' + data.warnings.join(', ');
+      }
+      showToast(msg, data.warnings ? 'warn' : '');
       await loadTools();
     } else {
       showToast('\\u2717 ' + (data.error || 'Unknown error'), 'error');

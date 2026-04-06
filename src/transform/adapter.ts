@@ -6,6 +6,7 @@ export interface AdaptResult {
   changed: boolean;
   changeType: "none" | "http-to-mcp-remote" | "mcp-remote-to-http" | "path-resolved";
   description?: string;
+  warnings?: string[];
 }
 
 /**
@@ -22,6 +23,7 @@ export function adaptServer(
   let changed = false;
   let changeType: AdaptResult["changeType"] = "none";
   let description: string | undefined;
+  const warnings: string[] = [];
 
   // 1. HTTP → mcp-remote (target doesn't support HTTP)
   if (server.type === "http" && !targetTool.httpSupport) {
@@ -58,7 +60,46 @@ export function adaptServer(
     }
   }
 
-  return { server: result, changed, changeType, description };
+  // 3. OpenClaw-specific defensive checks
+  if (targetTool.id === "openclaw") {
+    // OAuth is not supported — detect common OAuth patterns
+    if (
+      server.headers &&
+      typeof server.headers === "object" &&
+      hasOAuthHeader(server.headers as Record<string, string>)
+    ) {
+      warnings.push("OpenClaw does not support OAuth authentication — OAuth headers will be ignored");
+    }
+
+    // headers field is accepted in config but not processed at runtime
+    if (server.headers && typeof server.headers === "object") {
+      warnings.push("OpenClaw ignores the 'headers' field — HTTP headers will not be sent");
+      // Strip headers from the output since they won't work
+      const { headers, ...rest } = result;
+      result = rest as MCPServer;
+      changed = true;
+    }
+
+    // transport field (sse/streamable-http) not supported
+    if (server.transport) {
+      warnings.push(`OpenClaw does not support '${server.transport}' transport — only stdio works`);
+    }
+  }
+
+  return { server: result, changed, changeType, description, warnings: warnings.length > 0 ? warnings : undefined };
+}
+
+/**
+ * Check if headers contain OAuth-related values.
+ */
+function hasOAuthHeader(headers: Record<string, string>): boolean {
+  for (const [key, value] of Object.entries(headers)) {
+    const k = key.toLowerCase();
+    const v = typeof value === "string" ? value.toLowerCase() : "";
+    if (k === "authorization" && (v.includes("bearer") || v.includes("oauth"))) return true;
+    if (k.includes("oauth") || k.includes("token")) return true;
+  }
+  return false;
 }
 
 /**

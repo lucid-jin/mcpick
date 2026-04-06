@@ -12,7 +12,7 @@ import { backupConfig } from "../utils/backup";
 interface Issue {
   tool: string;
   server: string;
-  type: "http-unsupported" | "relative-path" | "missing-file";
+  type: "http-unsupported" | "relative-path" | "missing-file" | "oauth-unsupported" | "headers-ignored" | "transport-unsupported";
   message: string;
   fix?: string;
   fixAction?: () => Promise<void>;
@@ -67,6 +67,45 @@ export function doctorCommand(): Command {
                 if (backup) console.log(chalk.gray(`    Backup: ${backup}`));
               },
             });
+          }
+
+          // Check: OpenClaw-specific unsupported features
+          if (tool.id === "openclaw") {
+            // OAuth / headers not supported
+            const headers = (server as any).headers;
+            if (headers && typeof headers === "object") {
+              const authHeader = Object.entries(headers).find(
+                ([k, v]) => k.toLowerCase() === "authorization" && typeof v === "string" && (v as string).toLowerCase().includes("bearer")
+              );
+              if (authHeader) {
+                issues.push({
+                  tool: tool.name,
+                  server: name,
+                  type: "oauth-unsupported",
+                  message: "uses OAuth/Bearer authentication (not supported by OpenClaw)",
+                  fix: "use mcp-remote wrapper for OAuth, or configure a static token",
+                });
+              } else {
+                issues.push({
+                  tool: tool.name,
+                  server: name,
+                  type: "headers-ignored",
+                  message: "has 'headers' field which OpenClaw ignores at runtime",
+                });
+              }
+            }
+
+            // transport field not supported
+            const transport = (server as any).transport;
+            if (transport) {
+              issues.push({
+                tool: tool.name,
+                server: name,
+                type: "transport-unsupported",
+                message: `uses '${transport}' transport (OpenClaw only supports stdio)`,
+                fix: "convert to stdio with mcp-remote wrapper",
+              });
+            }
           }
 
           // Check: relative paths in env

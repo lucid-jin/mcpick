@@ -98,6 +98,15 @@ export function getTools(): Tool[] {
       configPath: home(".copilot", "mcp-config.json"),
       keywords: ["copilot", "github", "gh"],
     },
+    {
+      id: "openclaw",
+      name: "OpenClaw",
+      format: "json",
+      httpSupport: false,
+      serversKey: "mcp.servers",
+      configPath: home(".openclaw", "openclaw.json"),
+      keywords: ["openclaw", "claw", "lobster"],
+    },
   ];
 }
 

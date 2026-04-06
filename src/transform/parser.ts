@@ -2,6 +2,17 @@ import { readFile, access } from "fs/promises";
 import TOML from "@iarna/toml";
 import type { Tool } from "../registry/tools";
 
+/** Resolve a dot-separated key path (e.g. "mcp.servers") from a nested object */
+function getNestedValue(obj: Record<string, unknown>, keyPath: string): unknown {
+  const keys = keyPath.split(".");
+  let current: unknown = obj;
+  for (const key of keys) {
+    if (!current || typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[key];
+  }
+  return current;
+}
+
 export interface MCPServer {
   type: "stdio" | "http";
   command?: string;
@@ -49,14 +60,14 @@ function parseJsonConfig(content: string, tool: Tool): ParsedConfig {
     return { servers: {}, raw: {}, parseError: "Config is not a valid JSON object" };
   }
 
-  const serversSection = raw[tool.serversKey];
+  const serversSection = getNestedValue(raw, tool.serversKey);
   if (!serversSection || typeof serversSection !== "object") {
     return { servers: {}, raw };
   }
 
   const servers: Record<string, MCPServer> = {};
 
-  for (const [name, config] of Object.entries(serversSection)) {
+  for (const [name, config] of Object.entries(serversSection as Record<string, unknown>)) {
     if (!config || typeof config !== "object") continue;
     servers[name] = extractServer(config as Record<string, unknown>);
   }

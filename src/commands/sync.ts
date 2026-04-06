@@ -159,6 +159,13 @@ async function previewAndApply(
     const conflict = exists ? chalk.yellow(" [overwrite]") : "";
 
     console.log(`  ${prefix} ${name.padEnd(25)} ${suffix}${conflict}`);
+
+    // Show warnings (e.g. OpenClaw unsupported features)
+    if (result.warnings) {
+      for (const warning of result.warnings) {
+        console.log(`    ${chalk.yellow("⚠")} ${chalk.yellow(warning)}`);
+      }
+    }
   }
 
   console.log();
