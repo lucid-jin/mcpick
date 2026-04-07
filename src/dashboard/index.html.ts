@@ -398,7 +398,7 @@ async function undoLastAction() {
   if (!lastAction) return;
   if (lastAction.type === 'delete') {
     try {
-      await fetch('/api/sync', {
+      const res = await fetch('/api/sync', {
         method: 'POST',
         headers: postHeaders,
         body: JSON.stringify({
@@ -408,9 +408,14 @@ async function undoLastAction() {
           serverData: { [lastAction.serverName]: lastAction.server }
         })
       });
-      showToast('Restored ' + lastAction.serverName, '');
-      lastAction = null;
-      await loadTools();
+      const data = await res.json();
+      if (data.success) {
+        showToast('Restored ' + lastAction.serverName, '');
+        lastAction = null;
+        await loadTools();
+      } else {
+        showToast('Undo failed: ' + (data.error || 'Unknown'), 'error');
+      }
     } catch (err) {
       showToast('Undo failed: ' + err.message, 'error');
     }

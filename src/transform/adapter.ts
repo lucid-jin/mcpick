@@ -86,7 +86,36 @@ export function adaptServer(
     }
   }
 
+  // 4. AntiGravity: enforce absolute paths
+  if (targetTool.requireAbsolutePaths) {
+    // Check command path
+    if (result.command && !result.command.startsWith("/") && !result.command.startsWith("C:\\") && !isWellKnownCommand(result.command)) {
+      warnings.push(`${targetTool.name} requires absolute paths — "${result.command}" may not work`);
+    }
+    // Check args for relative paths
+    if (result.args) {
+      for (const arg of result.args) {
+        if (arg.startsWith("./") || arg.startsWith("../")) {
+          warnings.push(`${targetTool.name} requires absolute paths — relative arg "${arg}" may not work`);
+        }
+      }
+    }
+    // Check env for relative file paths
+    if (result.env) {
+      for (const [key, value] of Object.entries(result.env)) {
+        if (typeof value === "string" && (value.startsWith("./") || value.startsWith("../"))) {
+          warnings.push(`${targetTool.name} requires absolute paths — ${key}="${value}" is relative`);
+        }
+      }
+    }
+  }
+
   return { server: result, changed, changeType, description, warnings: warnings.length > 0 ? warnings : undefined };
+}
+
+function isWellKnownCommand(cmd: string): boolean {
+  const known = ["node", "npx", "python", "python3", "uvx", "bun", "bunx", "deno", "cmd"];
+  return known.includes(cmd.toLowerCase());
 }
 
 /**
