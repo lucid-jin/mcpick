@@ -3,7 +3,7 @@ import chalk from "chalk";
 import { existsSync } from "fs";
 import { resolve, isAbsolute } from "path";
 import { detectInstalledTools } from "../registry/detect";
-import { findTool } from "../registry/tools";
+import { findToolResolved } from "../registry/detect";
 import { parseConfig } from "../transform/parser";
 import { adaptServer } from "../transform/adapter";
 import { writeConfig } from "../transform/writer";
@@ -27,7 +27,7 @@ export function doctorCommand(): Command {
       let tools = await detectInstalledTools();
 
       if (toolId) {
-        const specific = findTool(toolId);
+        const specific = await findToolResolved(toolId);
         if (!specific) {
           console.log(chalk.red(`Unknown tool: ${toolId}`));
           return;

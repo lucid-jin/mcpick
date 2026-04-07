@@ -1,8 +1,8 @@
 import { Command } from "commander";
 import { select, checkbox, confirm } from "@inquirer/prompts";
 import chalk from "chalk";
-import { detectInstalledTools } from "../registry/detect";
-import { findTool, type Tool } from "../registry/tools";
+import { detectInstalledTools, findToolResolved } from "../registry/detect";
+import type { Tool } from "../registry/tools";
 import { parseConfig } from "../transform/parser";
 import { adaptServer, type AdaptResult } from "../transform/adapter";
 import { writeConfig } from "../transform/writer";
@@ -98,8 +98,8 @@ async function runInteractiveSync(opts: any) {
 }
 
 async function runDirectSync(sourceId: string, targetId: string, opts: any) {
-  const sourceTool = findTool(sourceId);
-  const targetTool = findTool(targetId);
+  const sourceTool = await findToolResolved(sourceId);
+  const targetTool = await findToolResolved(targetId);
 
   if (!sourceTool) {
     console.log(chalk.red(`Unknown source: ${sourceId}`));
