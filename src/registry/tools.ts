@@ -9,6 +9,8 @@ export interface Tool {
   serversKey: string;
   configPath: string;
   keywords: string[];
+  httpUrlField?: string; // "url" (default) or "serverUrl" (AntiGravity)
+  requireAbsolutePaths?: boolean; // AntiGravity requires absolute paths
 }
 
 function home(...segments: string[]): string {
@@ -97,6 +99,17 @@ export function getTools(): Tool[] {
       serversKey: "mcpServers",
       configPath: home(".copilot", "mcp-config.json"),
       keywords: ["copilot", "github", "gh"],
+    },
+    {
+      id: "antigravity",
+      name: "AntiGravity",
+      format: "json",
+      httpSupport: true,
+      serversKey: "mcpServers",
+      configPath: home(".gemini", "antigravity", "mcp_config.json"),
+      keywords: ["antigravity", "anti-gravity", "google-antigravity", "ag"],
+      httpUrlField: "serverUrl",
+      requireAbsolutePaths: true,
     },
     {
       id: "openclaw",
