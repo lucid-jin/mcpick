@@ -186,6 +186,7 @@ function getToolTags(tool) {
   if (!tool.httpSupport) tags.push('<span class="tag no-http">no HTTP</span>');
   if (tool.format === 'toml') tags.push('<span class="tag toml">TOML</span>');
   if (tool.id === 'openclaw') tags.push('<span class="tag no-http">no OAuth</span>');
+  if (tool.id === 'antigravity') tags.push('<span class="tag toml">serverUrl</span>');
   return tags.join('');
 }
 

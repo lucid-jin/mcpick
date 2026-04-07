@@ -61,7 +61,7 @@ async function writeJsonConfig(
   const outputServers: Record<string, unknown> = options.merge ? { ...existingServers } : {};
 
   for (const [name, server] of Object.entries(servers)) {
-    outputServers[name] = serializeJsonServer(server);
+    outputServers[name] = serializeJsonServer(server, tool);
   }
 
   const output = { ...existing };
@@ -99,12 +99,18 @@ async function writeTomlConfig(
   await writeFile(tool.configPath, TOML.stringify(output as any), "utf-8");
 }
 
-export function serializeJsonServer(server: MCPServer): Record<string, unknown> {
+export function serializeJsonServer(server: MCPServer, tool?: Tool): Record<string, unknown> {
   const result: Record<string, unknown> = {};
+  const urlField = tool?.httpUrlField || "url";
 
   if (server.type === "http" && server.url) {
-    result.type = "http";
-    result.url = server.url;
+    if (urlField !== "url") {
+      // AntiGravity uses "serverUrl" instead of "url"
+      result[urlField] = server.url;
+    } else {
+      result.type = "http";
+      result.url = server.url;
+    }
   } else {
     if (server.command) result.command = server.command;
     if (server.args && server.args.length > 0) result.args = server.args;
@@ -115,7 +121,7 @@ export function serializeJsonServer(server: MCPServer): Record<string, unknown> 
   }
 
   for (const [key, value] of Object.entries(server)) {
-    if (!["type", "command", "args", "url", "env"].includes(key) && value !== undefined) {
+    if (!["type", "command", "args", "url", "serverUrl", "env"].includes(key) && value !== undefined) {
       result[key] = value;
     }
   }

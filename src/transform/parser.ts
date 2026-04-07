@@ -116,15 +116,18 @@ function parseTomlConfig(content: string, tool: Tool): ParsedConfig {
 }
 
 export function extractServer(c: Record<string, unknown>): MCPServer {
+  // Support both "url" and "serverUrl" (AntiGravity)
+  const url = typeof c.url === "string" ? c.url : typeof c.serverUrl === "string" ? c.serverUrl : undefined;
+
   return {
-    type: c.type === "http" || c.url ? "http" : "stdio",
+    type: c.type === "http" || url ? "http" : "stdio",
     command: typeof c.command === "string" ? c.command : undefined,
     args: Array.isArray(c.args) ? c.args.map(String) : undefined,
-    url: typeof c.url === "string" ? c.url : undefined,
+    url,
     env: c.env && typeof c.env === "object" ? (c.env as Record<string, string>) : undefined,
     ...Object.fromEntries(
       Object.entries(c).filter(
-        ([k]) => !["type", "command", "args", "url", "env"].includes(k)
+        ([k]) => !["type", "command", "args", "url", "serverUrl", "env"].includes(k)
       )
     ),
   };
