@@ -8,6 +8,7 @@ export interface Tool {
   httpSupport: boolean;
   serversKey: string;
   configPath: string;
+  configPaths?: string[]; // fallback paths (first existing one wins)
   keywords: string[];
   httpUrlField?: string; // "url" (default) or "serverUrl" (AntiGravity)
   requireAbsolutePaths?: boolean; // AntiGravity requires absolute paths
@@ -22,6 +23,18 @@ function appdata(...segments: string[]): string {
     return join(process.env.APPDATA || join(homedir(), "AppData", "Roaming"), ...segments);
   }
   return home(...segments);
+}
+
+/**
+ * Get Windows Store (MSIX) sandboxed path for an app.
+ * Pattern: %LOCALAPPDATA%\Packages\<PackageFamilyName>\LocalCache\Roaming\<App>
+ * Package Family Name is fixed per app (derived from publisher hash).
+ * Claude Desktop = Claude_pzs8sxrjxfjjc
+ */
+function winStorePath(packageFamilyName: string, ...segments: string[]): string[] {
+  if (process.platform !== "win32") return [];
+  const localAppData = process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
+  return [join(localAppData, "Packages", packageFamilyName, "LocalCache", "Roaming", ...segments)];
 }
 
 export function getTools(): Tool[] {
@@ -58,6 +71,13 @@ export function getTools(): Tool[] {
         : isWin
           ? appdata("Claude", "claude_desktop_config.json")
           : home(".config", "Claude", "claude_desktop_config.json"),
+      // Windows Store (MSIX) uses sandboxed path
+      configPaths: isWin
+        ? [
+            appdata("Claude", "claude_desktop_config.json"),
+            ...winStorePath("Claude_pzs8sxrjxfjjc", "Claude", "claude_desktop_config.json"),
+          ]
+        : undefined,
       keywords: ["claude-desktop", "desktop"],
     },
     {
