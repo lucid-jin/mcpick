@@ -1,5 +1,5 @@
 import { access } from "fs/promises";
-import { getTools, type Tool } from "./tools";
+import { getTools, findTool as findToolStatic, type Tool } from "./tools";
 
 /**
  * Detect installed tools by checking if their config files exist.
@@ -10,21 +10,34 @@ export async function detectInstalledTools(): Promise<Tool[]> {
   const installed: Tool[] = [];
 
   for (const tool of tools) {
-    const resolvedPath = await resolveConfigPath(tool);
-    if (resolvedPath) {
-      // Use the resolved path (may differ from default if fallback matched)
-      installed.push({ ...tool, configPath: resolvedPath });
+    const resolved = await resolveTool(tool);
+    if (resolved) {
+      installed.push(resolved);
     }
   }
 
   return installed;
 }
 
-async function resolveConfigPath(tool: Tool): Promise<string | null> {
+/**
+ * Find a tool by keyword and resolve its config path.
+ * This should be used instead of the static findTool() for any file operations.
+ */
+export async function findToolResolved(keyword: string): Promise<Tool | undefined> {
+  const tool = findToolStatic(keyword);
+  if (!tool) return undefined;
+  return await resolveTool(tool) || tool;
+}
+
+/**
+ * Resolve a tool's config path, trying fallbacks if needed.
+ * Returns tool with resolved configPath, or null if no config exists.
+ */
+async function resolveTool(tool: Tool): Promise<Tool | null> {
   // Try default path first
   try {
     await access(tool.configPath);
-    return tool.configPath;
+    return tool;
   } catch {}
 
   // Try fallback paths (e.g., Windows Store MSIX)
@@ -32,7 +45,7 @@ async function resolveConfigPath(tool: Tool): Promise<string | null> {
     for (const path of tool.configPaths) {
       try {
         await access(path);
-        return path;
+        return { ...tool, configPath: path };
       } catch {}
     }
   }

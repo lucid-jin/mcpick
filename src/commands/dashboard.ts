@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { createServer } from "http";
 import { randomBytes } from "crypto";
 import { detectInstalledTools } from "../registry/detect";
-import { findTool } from "../registry/tools";
+import { findToolResolved } from "../registry/detect";
 import { parseConfig } from "../transform/parser";
 import { adaptServer } from "../transform/adapter";
 import { writeConfig } from "../transform/writer";
@@ -63,8 +63,8 @@ async function startDashboard(port: number) {
         const body = await readBody(req);
         const { sourceId, targetId, serverNames } = JSON.parse(body);
 
-        const sourceTool = findTool(sourceId);
-        const targetTool = findTool(targetId);
+        const sourceTool = await findToolResolved(sourceId);
+        const targetTool = await findToolResolved(targetId);
         if (!sourceTool || !targetTool) {
           json(res, { error: "Invalid tool IDs" }, 400);
           return;
@@ -105,7 +105,7 @@ async function startDashboard(port: number) {
         const body = await readBody(req);
         const { toolId, serverName } = JSON.parse(body);
 
-        const tool = findTool(toolId);
+        const tool = await findToolResolved(toolId);
         if (!tool) {
           json(res, { error: "Invalid tool ID" }, 400);
           return;
