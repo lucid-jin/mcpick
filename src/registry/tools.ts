@@ -71,15 +71,18 @@ export function getTools(): Tool[] {
         : isWin
           ? appdata("Claude", "claude_desktop_config.json")
           : home(".config", "Claude", "claude_desktop_config.json"),
-      // Windows Store (MSIX) uses sandboxed path
-      configPaths: isWin
-        ? [
-            appdata("Claude", "claude_desktop_config.json"),
-            ...winStorePath("Claude_pzs8sxrjxfjjc", "Claude", "claude_desktop_config.json"),
-          ]
-        : undefined,
       keywords: ["claude-desktop", "desktop"],
     },
+    // Windows Store (MSIX) version — separate entry so both show if installed
+    ...(isWin ? [{
+      id: "claude-desktop-store",
+      name: "Claude Desktop (Store)",
+      format: "json" as const,
+      httpSupport: false,
+      serversKey: "mcpServers",
+      configPath: winStorePath("Claude_pzs8sxrjxfjjc", "Claude", "claude_desktop_config.json")[0] || "",
+      keywords: ["claude-desktop-store", "desktop-store", "store"],
+    }] : []),
     {
       id: "codex",
       name: "Codex",
