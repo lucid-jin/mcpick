@@ -34,7 +34,11 @@ function appdata(...segments: string[]): string {
 function winStorePath(packageFamilyName: string, ...segments: string[]): string[] {
   if (process.platform !== "win32") return [];
   const localAppData = process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
-  return [join(localAppData, "Packages", packageFamilyName, "LocalCache", "Roaming", ...segments)];
+  // MSIX apps can use LocalCache or LocalState
+  return [
+    join(localAppData, "Packages", packageFamilyName, "LocalCache", ...segments),
+    join(localAppData, "Packages", packageFamilyName, "LocalState", ...segments),
+  ];
 }
 
 export function getTools(): Tool[] {
@@ -81,6 +85,7 @@ export function getTools(): Tool[] {
       httpSupport: false,
       serversKey: "mcpServers",
       configPath: winStorePath("Claude_pzs8sxrjxfjjc", "Claude", "claude_desktop_config.json")[0] || "",
+      configPaths: winStorePath("Claude_pzs8sxrjxfjjc", "Claude", "claude_desktop_config.json"),
       keywords: ["claude-desktop-store", "desktop-store", "store"],
     }] : []),
     {
