@@ -34,8 +34,9 @@ function appdata(...segments: string[]): string {
 function winStorePath(packageFamilyName: string, ...segments: string[]): string[] {
   if (process.platform !== "win32") return [];
   const localAppData = process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local");
-  // MSIX apps can use LocalCache or LocalState
+  // MSIX apps: try all known sub-paths
   return [
+    join(localAppData, "Packages", packageFamilyName, "LocalCache", "Roaming", ...segments),
     join(localAppData, "Packages", packageFamilyName, "LocalCache", ...segments),
     join(localAppData, "Packages", packageFamilyName, "LocalState", ...segments),
   ];
