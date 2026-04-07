@@ -50,11 +50,20 @@ async function writeJsonConfig(
   let existing: Record<string, unknown> = options.rawBase || {};
 
   if (!options.rawBase) {
-    try {
-      await access(tool.configPath);
+    let fileExists = false;
+    try { await access(tool.configPath); fileExists = true; } catch {}
+
+    if (fileExists) {
       const content = await readFile(tool.configPath, "utf-8");
-      existing = JSON.parse(content);
-    } catch { /* start fresh */ }
+      try {
+        existing = JSON.parse(content);
+      } catch (err: any) {
+        if (options.merge) {
+          throw new Error(`Cannot merge into ${tool.name}: config file is malformed JSON. Fix or delete ${tool.configPath} first. (${err.message})`);
+        }
+        // Non-merge: overwrite is intentional, start fresh
+      }
+    }
   }
 
   const existingServers = (getNestedValue(existing, tool.serversKey) as Record<string, unknown>) || {};
@@ -79,11 +88,19 @@ async function writeTomlConfig(
   let existing: Record<string, unknown> = options.rawBase || {};
 
   if (!options.rawBase) {
-    try {
-      await access(tool.configPath);
+    let fileExists = false;
+    try { await access(tool.configPath); fileExists = true; } catch {}
+
+    if (fileExists) {
       const content = await readFile(tool.configPath, "utf-8");
-      existing = TOML.parse(content) as Record<string, unknown>;
-    } catch { /* start fresh */ }
+      try {
+        existing = TOML.parse(content) as Record<string, unknown>;
+      } catch (err: any) {
+        if (options.merge) {
+          throw new Error(`Cannot merge into ${tool.name}: config file is malformed TOML. Fix or delete ${tool.configPath} first. (${err.message})`);
+        }
+      }
+    }
   }
 
   const existingServers = (existing[tool.serversKey] as Record<string, unknown>) || {};

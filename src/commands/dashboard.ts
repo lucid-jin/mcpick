@@ -61,30 +61,42 @@ async function startDashboard(port: number) {
 
       if (url.pathname === "/api/sync" && req.method === "POST") {
         const body = await readBody(req);
-        const { sourceId, targetId, serverNames } = JSON.parse(body);
+        const { sourceId, targetId, serverNames, serverData } = JSON.parse(body);
 
-        const sourceTool = await findToolResolved(sourceId);
         const targetTool = await findToolResolved(targetId);
-        if (!sourceTool || !targetTool) {
-          json(res, { error: "Invalid tool IDs" }, 400);
-          return;
-        }
-
-
-        const sourceConfig = await parseConfig(sourceTool);
-        if (!sourceConfig) {
-          json(res, { error: "Source config not found or invalid" }, 400);
+        if (!targetTool) {
+          json(res, { error: "Invalid target tool ID" }, 400);
           return;
         }
 
         const servers: Record<string, any> = {};
         const allWarnings: string[] = [];
-        for (const name of serverNames) {
-          if (sourceConfig.servers[name]) {
-            const adapted = adaptServer(name, sourceConfig.servers[name], sourceTool, targetTool);
-            servers[name] = adapted.server;
-            if (adapted.warnings) {
-              allWarnings.push(...adapted.warnings.map((w: string) => `${name}: ${w}`));
+
+        if (serverData && sourceId === targetId) {
+          // Undo restore: trusted server data for same-tool restore only
+          for (const [name, srv] of Object.entries(serverData)) {
+            servers[name] = srv;
+          }
+        } else {
+          const sourceTool = await findToolResolved(sourceId);
+          if (!sourceTool) {
+            json(res, { error: "Invalid source tool ID" }, 400);
+            return;
+          }
+
+          const sourceConfig = await parseConfig(sourceTool);
+          if (!sourceConfig) {
+            json(res, { error: "Source config not found or invalid" }, 400);
+            return;
+          }
+
+          for (const name of serverNames) {
+            if (sourceConfig.servers[name]) {
+              const adapted = adaptServer(name, sourceConfig.servers[name], sourceTool, targetTool);
+              servers[name] = adapted.server;
+              if (adapted.warnings) {
+                allWarnings.push(...adapted.warnings.map((w: string) => `${name}: ${w}`));
+              }
             }
           }
         }
