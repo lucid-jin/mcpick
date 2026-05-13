@@ -39,6 +39,7 @@ bun add -g mcpick
 | `codex` | Codex | `~/.codex/config.toml` | TOML | X (변환 필요) |
 | `gemini` | Gemini CLI | `~/.gemini/settings.json` | JSON | O |
 | `copilot` | Copilot CLI | `~/.copilot/mcp-config.json` | JSON | O |
+| `hermes` | Hermes Agent | `~/.hermes/config.yaml` | YAML | **X** (mcp-remote 변환) |
 
 > Windows/Linux 경로는 자동 분기됩니다.
 

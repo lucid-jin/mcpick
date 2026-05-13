@@ -2,7 +2,7 @@
 
 > Pick and sync MCP server configs across AI tools.
 
-Sync MCP server configurations between Claude Code, Claude Desktop, Cursor, Codex, Gemini CLI, AntiGravity, Copilot CLI, and OpenClaw. Automatically handles HTTP-to-mcp-remote conversion, JSON/TOML format translation, serverUrl mapping, and path resolution.
+Sync MCP server configurations between Claude Code, Claude Desktop, Cursor, Codex, Gemini CLI, AntiGravity, Copilot CLI, OpenClaw, and Hermes Agent. Automatically handles HTTP-to-mcp-remote conversion, JSON/TOML/YAML format translation, serverUrl mapping, and path resolution.
 
 ## Install
 
@@ -77,11 +77,12 @@ mcpicker dashboard -p 8080   # custom port
 | AntiGravity | JSON | Yes (serverUrl) | Yes | Yes | Uses serverUrl instead of url |
 | Copilot CLI | JSON | Yes | Yes | Yes | |
 | OpenClaw | JSON | No | Yes | Yes | OAuth/headers defensive checks |
+| Hermes Agent | YAML | No (auto mcp-remote) | Yes | Yes | Surgical edit preserves rest of `~/.hermes/config.yaml` |
 
 ## Key Features
 
 - **HTTP auto-conversion**: HTTP servers automatically wrapped with `mcp-remote` for tools that don't support HTTP
-- **JSON/TOML translation**: Sync between JSON and TOML configs (Codex support)
+- **JSON/TOML/YAML translation**: Sync between JSON, TOML (Codex), and YAML (Hermes) configs
 - **serverUrl mapping**: AntiGravity's `serverUrl` field auto-converted to/from `url`
 - **Bidirectional sync**: Sync in any direction between any supported tools
 - **Selective sync**: Pick specific servers with `--pick`
