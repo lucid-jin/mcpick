@@ -12,7 +12,7 @@
     "prepublishOnly": "bun run build",
     "test": "bun test"
   },
-  "keywords": ["mcp", "sync", "claude", "cursor", "codex", "gemini", "copilot", "claude-desktop"],
+  "keywords": ["mcp", "sync", "claude", "cursor", "codex", "gemini", "copilot", "claude-desktop", "hermes"],
   "author": "lucid-jin",
   "license": "MIT",
   "repository": {
@@ -30,7 +30,8 @@
     "@iarna/toml": "^2.2.5",
     "@inquirer/prompts": "^8.3.2",
     "chalk": "^5.6.2",
-    "commander": "^14.0.3"
+    "commander": "^14.0.3",
+    "yaml": "^2.6.1"
   },
   "files": ["dist/", "README.md", "LICENSE"]
 }

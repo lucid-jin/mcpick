@@ -4,7 +4,7 @@ import { join } from "path";
 export interface Tool {
   id: string;
   name: string;
-  format: "json" | "toml";
+  format: "json" | "toml" | "yaml";
   httpSupport: boolean;
   serversKey: string;
   configPath: string;
@@ -148,6 +148,15 @@ export function getTools(): Tool[] {
       serversKey: "mcp.servers",
       configPath: home(".openclaw", "openclaw.json"),
       keywords: ["openclaw", "claw", "lobster"],
+    },
+    {
+      id: "hermes",
+      name: "Hermes Agent",
+      format: "yaml",
+      httpSupport: false,
+      serversKey: "mcp_servers",
+      configPath: home(".hermes", "config.yaml"),
+      keywords: ["hermes", "hermes-agent"],
     },
   ];
 }
