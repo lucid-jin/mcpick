@@ -201,3 +201,50 @@ args = ["/c", "npx", "-y", "mcp-remote", "https://example.com"]
     expect(result!.servers.srv!.args).toEqual(["-y", "mcp-remote", "https://example.com"]);
   });
 });
+
+describe("parseConfig — YAML (Hermes)", () => {
+  test("parses mcp_servers from hermes-style config", async () => {
+    const tool = makeTool({
+      format: "yaml",
+      serversKey: "mcp_servers",
+      configPath: join(TMP, "config.yaml"),
+    });
+    const yaml = `model:
+  default: gpt-5.5
+mcp_servers:
+  notion:
+    command: npx
+    args:
+      - '@notionhq/notion-mcp-server'
+    env:
+      NOTION_TOKEN: secret
+  sentry:
+    command: npx
+    args:
+      - -y
+      - mcp-remote
+      - https://mcp.sentry.dev/mcp
+`;
+    await writeFile(tool.configPath, yaml);
+
+    const result = await parseConfig(tool);
+    expect(result).not.toBeNull();
+    expect(Object.keys(result!.servers).sort()).toEqual(["notion", "sentry"]);
+    expect(result!.servers.notion!.command).toBe("npx");
+    expect(result!.servers.notion!.env).toEqual({ NOTION_TOKEN: "secret" });
+    expect(result!.servers.sentry!.args).toEqual(["-y", "mcp-remote", "https://mcp.sentry.dev/mcp"]);
+  });
+
+  test("returns empty servers when mcp_servers is missing", async () => {
+    const tool = makeTool({
+      format: "yaml",
+      serversKey: "mcp_servers",
+      configPath: join(TMP, "config.yaml"),
+    });
+    await writeFile(tool.configPath, "model:\n  default: gpt-5.5\n");
+
+    const result = await parseConfig(tool);
+    expect(result).not.toBeNull();
+    expect(result!.servers).toEqual({});
+  });
+});

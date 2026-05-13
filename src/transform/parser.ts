@@ -1,5 +1,6 @@
 import { readFile, access } from "fs/promises";
 import TOML from "@iarna/toml";
+import YAML from "yaml";
 import type { Tool } from "../registry/tools";
 
 /** Resolve a dot-separated key path (e.g. "mcp.servers") from a nested object */
@@ -44,6 +45,10 @@ export async function parseConfig(tool: Tool): Promise<ParsedConfig | null> {
 
     if (tool.format === "toml") {
       return parseTomlConfig(content, tool);
+    }
+
+    if (tool.format === "yaml") {
+      return parseYamlConfig(content, tool);
     }
 
     return null;
@@ -110,6 +115,28 @@ function parseTomlConfig(content: string, tool: Tool): ParsedConfig {
         )
       ),
     };
+  }
+
+  return { servers, raw };
+}
+
+function parseYamlConfig(content: string, tool: Tool): ParsedConfig {
+  const raw = (YAML.parse(content) ?? {}) as Record<string, unknown>;
+
+  if (!raw || typeof raw !== "object") {
+    return { servers: {}, raw: {}, parseError: "Config is not a valid YAML object" };
+  }
+
+  const serversSection = getNestedValue(raw, tool.serversKey);
+  if (!serversSection || typeof serversSection !== "object") {
+    return { servers: {}, raw };
+  }
+
+  const servers: Record<string, MCPServer> = {};
+
+  for (const [name, config] of Object.entries(serversSection as Record<string, unknown>)) {
+    if (!config || typeof config !== "object") continue;
+    servers[name] = extractServer(config as Record<string, unknown>);
   }
 
   return { servers, raw };

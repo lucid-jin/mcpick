@@ -1,6 +1,7 @@
 import { readFile, writeFile, access, mkdir } from "fs/promises";
 import { dirname } from "path";
 import TOML from "@iarna/toml";
+import YAML from "yaml";
 import type { Tool } from "../registry/tools";
 import type { MCPServer } from "./parser";
 
@@ -37,6 +38,10 @@ export async function writeConfig(
 ): Promise<void> {
   if (tool.format === "toml") {
     return writeTomlConfig(tool, servers, options);
+  }
+
+  if (tool.format === "yaml") {
+    return writeYamlConfig(tool, servers, options);
   }
 
   return writeJsonConfig(tool, servers, options);
@@ -114,6 +119,58 @@ async function writeTomlConfig(
 
   await mkdir(dirname(tool.configPath), { recursive: true });
   await writeFile(tool.configPath, TOML.stringify(output as any), "utf-8");
+}
+
+async function writeYamlConfig(
+  tool: Tool,
+  servers: Record<string, MCPServer>,
+  options: { merge?: boolean; rawBase?: Record<string, unknown> }
+): Promise<void> {
+  let doc: YAML.Document.Parsed | YAML.Document;
+  let fileExists = false;
+
+  try { await access(tool.configPath); fileExists = true; } catch {}
+
+  if (fileExists) {
+    const content = await readFile(tool.configPath, "utf-8");
+    try {
+      doc = YAML.parseDocument(content);
+      if (doc.errors.length > 0) {
+        throw new Error(doc.errors.map((e) => e.message).join("; "));
+      }
+    } catch (err: any) {
+      if (options.merge) {
+        throw new Error(`Cannot merge into ${tool.name}: config file is malformed YAML. Fix or delete ${tool.configPath} first. (${err.message})`);
+      }
+      doc = new YAML.Document({});
+    }
+  } else {
+    doc = new YAML.Document({});
+  }
+
+  // Build the new servers map, optionally merging with existing
+  const keys = tool.serversKey.split(".");
+  const existingNode = doc.getIn(keys);
+  const existingServers: Record<string, unknown> =
+    options.merge && existingNode && YAML.isMap(existingNode)
+      ? (existingNode.toJSON() as Record<string, unknown>) || {}
+      : {};
+
+  const outputServers: Record<string, unknown> = { ...existingServers };
+  if (!options.merge) {
+    // Clear existing when overwriting
+    for (const k of Object.keys(outputServers)) delete outputServers[k];
+  }
+
+  for (const [name, server] of Object.entries(servers)) {
+    outputServers[name] = serializeJsonServer(server);
+  }
+
+  // Surgically replace the servers node. Preserves doc-level comments/order.
+  doc.setIn(keys, outputServers);
+
+  await mkdir(dirname(tool.configPath), { recursive: true });
+  await writeFile(tool.configPath, doc.toString(), "utf-8");
 }
 
 export function serializeJsonServer(server: MCPServer, tool?: Tool): Record<string, unknown> {
