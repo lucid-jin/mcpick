@@ -228,3 +228,108 @@ describe("writeConfig — JSON", () => {
     expect(content.name).toBe("my-openclaw");
   });
 });
+
+describe("writeConfig — YAML (Hermes)", () => {
+  function hermesTool(): Tool {
+    return makeTool({
+      id: "hermes",
+      name: "Hermes Agent",
+      format: "yaml",
+      httpSupport: false,
+      serversKey: "mcp_servers",
+      configPath: join(TMP, "config.yaml"),
+    });
+  }
+
+  test("writes mcp_servers to new YAML file", async () => {
+    const tool = hermesTool();
+    const servers: Record<string, MCPServer> = {
+      sentry: { type: "stdio", command: "npx", args: ["-y", "mcp-remote", "https://mcp.sentry.dev/mcp"] },
+    };
+
+    await writeConfig(tool, servers);
+
+    const content = await readFile(tool.configPath, "utf-8");
+    expect(content).toContain("mcp_servers:");
+    expect(content).toContain("sentry:");
+    expect(content).toContain("mcp.sentry.dev");
+  });
+
+  test("preserves unrelated hermes config keys when merging", async () => {
+    const tool = hermesTool();
+    const initial = `model:
+  default: gpt-5.5
+  provider: openai-codex
+agent:
+  max_turns: 90
+mcp_servers:
+  existing:
+    command: node
+    args:
+      - /existing/server.js
+timezone: 'Asia/Seoul'
+`;
+    await writeFile(tool.configPath, initial);
+
+    const servers: Record<string, MCPServer> = {
+      newSrv: { type: "stdio", command: "npx", args: ["-y", "new-mcp"] },
+    };
+    await writeConfig(tool, servers, { merge: true });
+
+    const content = await readFile(tool.configPath, "utf-8");
+    // Other top-level keys must survive
+    expect(content).toContain("default: gpt-5.5");
+    expect(content).toContain("provider: openai-codex");
+    expect(content).toContain("max_turns: 90");
+    expect(content).toContain("Asia/Seoul");
+    // Both servers must be present
+    expect(content).toContain("existing:");
+    expect(content).toContain("newSrv:");
+    expect(content).toContain("new-mcp");
+  });
+
+  test("preserves YAML comments via Document API", async () => {
+    const tool = hermesTool();
+    const initial = `# Top-level config
+model:
+  default: gpt-5.5  # primary model
+mcp_servers:
+  legacy:
+    command: node
+`;
+    await writeFile(tool.configPath, initial);
+
+    const servers: Record<string, MCPServer> = {
+      added: { type: "stdio", command: "npx", args: ["tool"] },
+    };
+    await writeConfig(tool, servers, { merge: true });
+
+    const content = await readFile(tool.configPath, "utf-8");
+    expect(content).toContain("# Top-level config");
+    expect(content).toContain("# primary model");
+    expect(content).toContain("legacy:");
+    expect(content).toContain("added:");
+  });
+
+  test("overwrites mcp_servers when merge is false", async () => {
+    const tool = hermesTool();
+    const initial = `model:
+  default: gpt-5.5
+mcp_servers:
+  old:
+    command: x
+`;
+    await writeFile(tool.configPath, initial);
+
+    const servers: Record<string, MCPServer> = {
+      fresh: { type: "stdio", command: "npx", args: ["new"] },
+    };
+    await writeConfig(tool, servers, { merge: false });
+
+    const content = await readFile(tool.configPath, "utf-8");
+    // The unrelated key survives, but mcp_servers entries are replaced
+    expect(content).toContain("default: gpt-5.5");
+    expect(content).toContain("fresh:");
+    expect(content).not.toContain("old:");
+  });
+});

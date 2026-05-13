@@ -180,3 +180,54 @@ describe("OpenClaw defensive checks", () => {
     expect(result.warnings).toBeUndefined();
   });
 });
+
+// --- Hermes target ---
+
+describe("Hermes target", () => {
+  const hermesTool = makeTool({
+    id: "hermes",
+    name: "Hermes Agent",
+    format: "yaml",
+    httpSupport: false,
+    serversKey: "mcp_servers",
+  });
+
+  test("wraps HTTP server with mcp-remote for hermes", () => {
+    const server: MCPServer = { type: "http", url: "https://mcp.zep.works/clickhouse/mcp" };
+    const result = adaptServer("clickhouse", server, httpTool, hermesTool);
+
+    expect(result.changed).toBe(true);
+    expect(result.changeType).toBe("http-to-mcp-remote");
+    expect(result.server.type).toBe("stdio");
+    expect(result.server.command).toBe("npx");
+    expect(result.server.args).toEqual(["-y", "mcp-remote", "https://mcp.zep.works/clickhouse/mcp"]);
+  });
+
+  test("passes stdio server through unchanged", () => {
+    const server: MCPServer = {
+      type: "stdio",
+      command: "npx",
+      args: ["@notionhq/notion-mcp-server"],
+      env: { NOTION_TOKEN: "secret" },
+    };
+    const result = adaptServer("notion", server, hermesTool, hermesTool);
+
+    expect(result.changed).toBe(false);
+    expect(result.server.command).toBe("npx");
+    expect(result.server.env).toEqual({ NOTION_TOKEN: "secret" });
+  });
+
+  test("unwraps mcp-remote to http when target supports HTTP", () => {
+    const server: MCPServer = {
+      type: "stdio",
+      command: "npx",
+      args: ["-y", "mcp-remote", "https://mcp.zep.works/zep/mcp"],
+    };
+    const result = adaptServer("zep", server, hermesTool, httpTool);
+
+    expect(result.changed).toBe(true);
+    expect(result.changeType).toBe("mcp-remote-to-http");
+    expect(result.server.type).toBe("http");
+    expect(result.server.url).toBe("https://mcp.zep.works/zep/mcp");
+  });
+});

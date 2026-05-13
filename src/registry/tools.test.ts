@@ -16,11 +16,22 @@ describe("getTools", () => {
     expect(openclaw!.format).toBe("json");
   });
 
+  test("includes Hermes Agent", () => {
+    const tools = getTools();
+    const hermes = tools.find((t) => t.id === "hermes");
+    expect(hermes).toBeDefined();
+    expect(hermes!.serversKey).toBe("mcp_servers");
+    expect(hermes!.httpSupport).toBe(false);
+    expect(hermes!.format).toBe("yaml");
+    expect(hermes!.configPath).toContain(".hermes");
+    expect(hermes!.configPath).toContain("config.yaml");
+  });
+
   test("all tools have required fields", () => {
     for (const tool of getTools()) {
       expect(tool.id).toBeTruthy();
       expect(tool.name).toBeTruthy();
-      expect(["json", "toml"]).toContain(tool.format);
+      expect(["json", "toml", "yaml"]).toContain(tool.format);
       expect(typeof tool.httpSupport).toBe("boolean");
       expect(tool.serversKey).toBeTruthy();
       expect(tool.configPath).toBeTruthy();
@@ -47,6 +58,7 @@ describe("findTool", () => {
     expect(findTool("claw")?.id).toBe("openclaw");
     expect(findTool("anthropic")?.id).toBe("claude-code");
     expect(findTool("google")?.id).toBe("gemini");
+    expect(findTool("hermes-agent")?.id).toBe("hermes");
   });
 
   test("finds by name (case insensitive)", () => {
